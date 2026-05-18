@@ -71,12 +71,12 @@ function placeOrder() {
         items.push({ name: menuItem.name, price: menuItem.price, qty });
     });
 
-    // FLAW #3 (PS4-3): Order has no status field (should be Pending / Ready / Delivered)
     const order = {
         id:       Date.now(),
         customer: customerName,
         items,
         total,
+        status:   'Pending',
         date:     new Date().toLocaleString()
     };
 
@@ -100,6 +100,13 @@ function placeOrder() {
         </div>`;
 }
 
+function updateStatus(orderId, newStatus) {
+    const orders = getOrders().map(o =>
+        o.id === orderId ? { ...o, status: newStatus } : o
+    );
+    localStorage.setItem('orders', JSON.stringify(orders));
+}
+
 function getOrders() {
     return JSON.parse(localStorage.getItem('orders') || '[]');
 }
@@ -121,6 +128,11 @@ function renderOrders(orders) {
                 <p>Date: ${order.date}</p>
                 <p>Items: ${order.items.map(i => `${i.name} x${i.qty}`).join(', ')}</p>
                 <p><strong>Total: $${order.total}</strong></p>
+                <p>Status: <select onchange="updateStatus(${order.id}, this.value)">
+                    <option ${order.status === 'Pending'   ? 'selected' : ''}>Pending</option>
+                    <option ${order.status === 'Ready'     ? 'selected' : ''}>Ready</option>
+                    <option ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                </select></p>
             </div>`;
     });
 }
