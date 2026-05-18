@@ -184,19 +184,38 @@ function renderOrders(orders) {
     }
 
     orders.forEach(order => {
-        // FLAW #8 (PS4-8): Unsanitized user input inserted directly via innerHTML - XSS vulnerability
-        list.innerHTML += `
-            <div class="order-card">
-                <h3>${order.customer}</h3>
-                <p>Date: ${order.date}</p>
-                <p>Items: ${order.items.map(i => `${i.name} x${i.qty}`).join(', ')}</p>
-                <p><strong>Total: $${order.total}</strong></p>
-                <p>Status: <select onchange="updateStatus(${order.id}, this.value)">
-                    <option ${order.status === 'Pending'   ? 'selected' : ''}>Pending</option>
-                    <option ${order.status === 'Ready'     ? 'selected' : ''}>Ready</option>
-                    <option ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
-                </select></p>
-            </div>`;
+        const card = document.createElement('div');
+        card.className = 'order-card';
+
+        const name = document.createElement('h3');
+        name.textContent = order.customer;
+
+        const date = document.createElement('p');
+        date.textContent = `Date: ${order.date}`;
+
+        const itemsP = document.createElement('p');
+        itemsP.textContent = `Items: ${order.items.map(i => `${i.name} x${i.qty}`).join(', ')}`;
+
+        const totalP = document.createElement('p');
+        const strong = document.createElement('strong');
+        strong.textContent = `Total: $${order.total}`;
+        totalP.appendChild(strong);
+
+        const statusP = document.createElement('p');
+        statusP.textContent = 'Status: ';
+        const select = document.createElement('select');
+        ['Pending', 'Ready', 'Delivered'].forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s;
+            opt.textContent = s;
+            if (order.status === s) opt.selected = true;
+            select.appendChild(opt);
+        });
+        select.onchange = () => updateStatus(order.id, select.value);
+        statusP.appendChild(select);
+
+        card.append(name, date, itemsP, totalP, statusP);
+        list.appendChild(card);
     });
 }
 
