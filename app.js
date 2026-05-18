@@ -129,11 +129,11 @@ function searchOrders() {
     const query  = document.getElementById('search-input').value;
     const orders = getOrders();
 
-    // FLAW #2 (PS4-2): includes() called with no argument - always returns false,
-    // so filtered is always empty and the fallback shows all orders regardless of query
-    const filtered = orders.filter(order => order.customer.includes());
+    const filtered = orders.filter(order =>
+        order.customer.toLowerCase().includes(query.toLowerCase())
+    );
 
-    renderOrders(filtered.length > 0 ? filtered : orders);
+    renderOrders(filtered);
 }
 
 // Boot
