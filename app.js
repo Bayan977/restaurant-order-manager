@@ -126,9 +126,14 @@ function placeOrder() {
     orders.push(order);
     localStorage.setItem('orders', JSON.stringify(orders));
 
-    document.getElementById('order-total').textContent = `Order placed! Total: $${total}`;
-
-    // FLAW #6 (PS4-6): No confirmation message shown to user after order is placed
+    const totalEl = document.getElementById('order-total');
+    totalEl.innerHTML = `
+        <div class="confirmation">
+            ✅ Order placed successfully!<br>
+            <strong>Customer:</strong> ${customerName}<br>
+            <strong>Items:</strong> ${items.map(i => `${i.name} x${i.qty}`).join(', ')}<br>
+            <strong>Total: $${total.toFixed(2)}</strong>
+        </div>`;
 
     document.getElementById('customer-name').value = '';
     document.getElementById('order-items').innerHTML = `
