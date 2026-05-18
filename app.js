@@ -66,8 +66,7 @@ function placeOrder() {
         const qty     = parseInt(row.querySelector('.item-qty').value);
         const menuItem = menu.find(m => m.id === itemId);
 
-        // FLAW #1 (PS4-1): Wrong total - multiplies price by itself instead of by quantity
-        total += menuItem.price * menuItem.price;
+        total += menuItem.price * qty;
 
         items.push({ name: menuItem.name, price: menuItem.price, qty });
     });
