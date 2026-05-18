@@ -188,3 +188,13 @@ input:focus, select:focus {
     padding: 4px 8px;
     margin-bottom: 0;
 }
+
+.confirmation {
+    background: #eaf7ea;
+    border: 1px solid #5a9e5a;
+    border-radius: 6px;
+    padding: 14px 18px;
+    color: #2d5a2d;
+    line-height: 1.8;
+    font-size: 15px;
+}

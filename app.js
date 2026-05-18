@@ -95,25 +95,28 @@ function addItem() {
     container.appendChild(div);
 }
 
-// FLAW #7 (PS4-7): All logic crammed into one function - validation, calculation, saving, and UI reset
-function placeOrder() {
-    const customerName = document.getElementById('customer-name').value;
-    if (!customerName) { alert('Please enter your name.'); return; }
+function validateOrder(customerName) {
+    if (!customerName) { alert('Please enter your name.'); return false; }
+    return true;
+}
 
+function collectItems() {
     const items = [];
-    let total = 0;
-
     document.querySelectorAll('.order-item').forEach(row => {
-        const itemId  = parseInt(row.querySelector('.item-select').value);
-        const qty     = parseInt(row.querySelector('.item-qty').value);
+        const itemId   = parseInt(row.querySelector('.item-select').value);
+        const qty      = parseInt(row.querySelector('.item-qty').value);
         const menuItem = getMenu().find(m => m.id === itemId);
-
-        total += menuItem.price * qty;
-
         items.push({ name: menuItem.name, price: menuItem.price, qty });
     });
+    return items;
+}
 
-    const order = {
+function calculateTotal(items) {
+    return items.reduce((sum, i) => sum + i.price * i.qty, 0);
+}
+
+function buildOrder(customerName, items, total) {
+    return {
         id:       Date.now(),
         customer: customerName,
         items,
@@ -121,26 +124,43 @@ function placeOrder() {
         status:   'Pending',
         date:     new Date().toLocaleString()
     };
+}
 
+function saveOrder(order) {
     const orders = getOrders();
     orders.push(order);
     localStorage.setItem('orders', JSON.stringify(orders));
+}
 
-    document.getElementById('order-total').textContent = `Order placed! Total: $${total}`;
+function showConfirmation(customerName, items, total) {
+    document.getElementById('order-total').innerHTML = `
+        <div class="confirmation">
+            ✅ Order placed successfully!<br>
+            <strong>Customer:</strong> ${customerName}<br>
+            <strong>Items:</strong> ${items.map(i => `${i.name} x${i.qty}`).join(', ')}<br>
+            <strong>Total: $${total.toFixed(2)}</strong>
+        </div>`;
+}
 
-    // FLAW #6 (PS4-6): No confirmation message shown to user after order is placed
-
+function resetForm() {
     document.getElementById('customer-name').value = '';
     document.getElementById('order-items').innerHTML = `
         <div class="order-item">
-            <select class="item-select">
-                ${menu.map(item =>
-                    `<option value="${item.id}">${item.name} - $${item.price}</option>`
-                ).join('')}
-            </select>
+            <select class="item-select"></select>
             <input type="number" class="item-qty" value="1" min="1">
         </div>`;
     populateSelects();
+}
+
+function placeOrder() {
+    const customerName = document.getElementById('customer-name').value;
+    if (!validateOrder(customerName)) return;
+    const items = collectItems();
+    const total = calculateTotal(items);
+    const order = buildOrder(customerName, items, total);
+    saveOrder(order);
+    showConfirmation(customerName, items, total);
+    resetForm();
 }
 
 function updateStatus(orderId, newStatus) {
@@ -164,19 +184,38 @@ function renderOrders(orders) {
     }
 
     orders.forEach(order => {
-        // FLAW #8 (PS4-8): Unsanitized user input inserted directly via innerHTML - XSS vulnerability
-        list.innerHTML += `
-            <div class="order-card">
-                <h3>${order.customer}</h3>
-                <p>Date: ${order.date}</p>
-                <p>Items: ${order.items.map(i => `${i.name} x${i.qty}`).join(', ')}</p>
-                <p><strong>Total: $${order.total}</strong></p>
-                <p>Status: <select onchange="updateStatus(${order.id}, this.value)">
-                    <option ${order.status === 'Pending'   ? 'selected' : ''}>Pending</option>
-                    <option ${order.status === 'Ready'     ? 'selected' : ''}>Ready</option>
-                    <option ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
-                </select></p>
-            </div>`;
+        const card = document.createElement('div');
+        card.className = 'order-card';
+
+        const name = document.createElement('h3');
+        name.textContent = order.customer;
+
+        const date = document.createElement('p');
+        date.textContent = `Date: ${order.date}`;
+
+        const itemsP = document.createElement('p');
+        itemsP.textContent = `Items: ${order.items.map(i => `${i.name} x${i.qty}`).join(', ')}`;
+
+        const totalP = document.createElement('p');
+        const strong = document.createElement('strong');
+        strong.textContent = `Total: $${order.total}`;
+        totalP.appendChild(strong);
+
+        const statusP = document.createElement('p');
+        statusP.textContent = 'Status: ';
+        const select = document.createElement('select');
+        ['Pending', 'Ready', 'Delivered'].forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s;
+            opt.textContent = s;
+            if (order.status === s) opt.selected = true;
+            select.appendChild(opt);
+        });
+        select.onchange = () => updateStatus(order.id, select.value);
+        statusP.appendChild(select);
+
+        card.append(name, date, itemsP, totalP, statusP);
+        list.appendChild(card);
     });
 }
 
