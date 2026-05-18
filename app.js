@@ -95,25 +95,28 @@ function addItem() {
     container.appendChild(div);
 }
 
-// FLAW #7 (PS4-7): All logic crammed into one function - validation, calculation, saving, and UI reset
-function placeOrder() {
-    const customerName = document.getElementById('customer-name').value;
-    if (!customerName) { alert('Please enter your name.'); return; }
+function validateOrder(customerName) {
+    if (!customerName) { alert('Please enter your name.'); return false; }
+    return true;
+}
 
+function collectItems() {
     const items = [];
-    let total = 0;
-
     document.querySelectorAll('.order-item').forEach(row => {
-        const itemId  = parseInt(row.querySelector('.item-select').value);
-        const qty     = parseInt(row.querySelector('.item-qty').value);
+        const itemId   = parseInt(row.querySelector('.item-select').value);
+        const qty      = parseInt(row.querySelector('.item-qty').value);
         const menuItem = getMenu().find(m => m.id === itemId);
-
-        total += menuItem.price * qty;
-
         items.push({ name: menuItem.name, price: menuItem.price, qty });
     });
+    return items;
+}
 
-    const order = {
+function calculateTotal(items) {
+    return items.reduce((sum, i) => sum + i.price * i.qty, 0);
+}
+
+function buildOrder(customerName, items, total) {
+    return {
         id:       Date.now(),
         customer: customerName,
         items,
@@ -121,31 +124,43 @@ function placeOrder() {
         status:   'Pending',
         date:     new Date().toLocaleString()
     };
+}
 
+function saveOrder(order) {
     const orders = getOrders();
     orders.push(order);
     localStorage.setItem('orders', JSON.stringify(orders));
+}
 
-    const totalEl = document.getElementById('order-total');
-    totalEl.innerHTML = `
+function showConfirmation(customerName, items, total) {
+    document.getElementById('order-total').innerHTML = `
         <div class="confirmation">
             ✅ Order placed successfully!<br>
             <strong>Customer:</strong> ${customerName}<br>
             <strong>Items:</strong> ${items.map(i => `${i.name} x${i.qty}`).join(', ')}<br>
             <strong>Total: $${total.toFixed(2)}</strong>
         </div>`;
+}
 
+function resetForm() {
     document.getElementById('customer-name').value = '';
     document.getElementById('order-items').innerHTML = `
         <div class="order-item">
-            <select class="item-select">
-                ${menu.map(item =>
-                    `<option value="${item.id}">${item.name} - $${item.price}</option>`
-                ).join('')}
-            </select>
+            <select class="item-select"></select>
             <input type="number" class="item-qty" value="1" min="1">
         </div>`;
     populateSelects();
+}
+
+function placeOrder() {
+    const customerName = document.getElementById('customer-name').value;
+    if (!validateOrder(customerName)) return;
+    const items = collectItems();
+    const total = calculateTotal(items);
+    const order = buildOrder(customerName, items, total);
+    saveOrder(order);
+    showConfirmation(customerName, items, total);
+    resetForm();
 }
 
 function updateStatus(orderId, newStatus) {
