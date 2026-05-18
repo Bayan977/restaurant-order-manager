@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Order Manager</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav>
+        <span class="brand">🍽 Restaurant</span>
+        <a href="#" onclick="showPage('menu')">Menu</a>
+        <a href="#" onclick="showPage('order')">Place Order</a>
+        <a href="#" onclick="showPage('orders')">All Orders</a>
+    </nav>
+
+    <!-- Menu Page -->
+    <div id="menu-page" class="page">
+        <h1>Our Menu</h1>
+        <div id="menu-list"></div>
+    </div>
+
+    <!-- Order Page -->
+    <div id="order-page" class="page hidden">
+        <h1>Place an Order</h1>
+        <label>Customer Name</label>
+        <input type="text" id="customer-name" placeholder="Enter your name">
+        <div id="order-items">
+            <div class="order-item">
+                <select class="item-select"></select>
+                <input type="number" class="item-qty" value="1" min="1">
+            </div>
+        </div>
+        <button class="btn-secondary" onclick="addItem()">+ Add Item</button>
+        <button class="btn-primary" onclick="placeOrder()">Place Order</button>
+        <p id="order-total"></p>
+    </div>
+
+    <!-- Orders Page -->
+    <div id="orders-page" class="page hidden">
+        <h1>All Orders</h1>
+        <div class="search-bar">
+            <input type="text" id="search-input" placeholder="Search by customer name">
+            <button class="btn-primary" onclick="searchOrders()">Search</button>
+        </div>
+        <div id="orders-list"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
