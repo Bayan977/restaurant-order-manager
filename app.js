@@ -1,7 +1,6 @@
 // Restaurant Order Manager
 
-// FLAW #4 (PS4-4): Menu is hardcoded - no UI to add or delete items
-const menu = [
+const defaultMenu = [
     { id: 1, name: "Burger",  price: 12 },
     { id: 2, name: "Pizza",   price: 15 },
     { id: 3, name: "Pasta",   price: 10 },
@@ -10,18 +9,61 @@ const menu = [
     { id: 6, name: "Soup",    price: 6  }
 ];
 
+function getMenu() {
+    const stored = localStorage.getItem('menu');
+    return stored ? JSON.parse(stored) : defaultMenu;
+}
+
+function saveMenu(menu) {
+    localStorage.setItem('menu', JSON.stringify(menu));
+}
+
+function addMenuItem() {
+    const name  = document.getElementById('new-item-name').value.trim();
+    const price = parseFloat(document.getElementById('new-item-price').value);
+    if (!name || isNaN(price) || price <= 0) { alert('Enter a valid name and price.'); return; }
+    const menu = getMenu();
+    menu.push({ id: Date.now(), name, price });
+    saveMenu(menu);
+    document.getElementById('new-item-name').value  = '';
+    document.getElementById('new-item-price').value = '';
+    renderManage();
+}
+
+function deleteMenuItem(id) {
+    saveMenu(getMenu().filter(item => item.id !== id));
+    renderManage();
+}
+
+function renderManage() {
+    const list = document.getElementById('manage-list');
+    list.innerHTML = '';
+    getMenu().forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'menu-item';
+        div.innerHTML = `<span><strong>${item.name}</strong> — $${item.price}</span>`;
+        const btn = document.createElement('button');
+        btn.className = 'btn-secondary';
+        btn.textContent = 'Delete';
+        btn.onclick = () => deleteMenuItem(item.id);
+        div.appendChild(btn);
+        list.appendChild(div);
+    });
+}
+
 function showPage(page) {
     document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
     document.getElementById(page + '-page').classList.remove('hidden');
     if (page === 'menu')   renderMenu();
     if (page === 'order')  populateSelects();
     if (page === 'orders') renderOrders(getOrders());
+    if (page === 'manage') renderManage();
 }
 
 function renderMenu() {
     const list = document.getElementById('menu-list');
     list.innerHTML = '';
-    menu.forEach(item => {
+    getMenu().forEach(item => {
         list.innerHTML += `
             <div class="menu-item">
                 <strong>${item.name}</strong>
@@ -32,7 +74,7 @@ function renderMenu() {
 
 function populateSelects() {
     document.querySelectorAll('.item-select').forEach(select => {
-        select.innerHTML = menu.map(item =>
+        select.innerHTML = getMenu().map(item =>
             `<option value="${item.id}">${item.name} - $${item.price}</option>`
         ).join('');
     });
@@ -44,7 +86,7 @@ function addItem() {
     div.className = 'order-item';
     div.innerHTML = `
         <select class="item-select">
-            ${menu.map(item =>
+            ${getMenu().map(item =>
                 `<option value="${item.id}">${item.name} - $${item.price}</option>`
             ).join('')}
         </select>
@@ -64,7 +106,7 @@ function placeOrder() {
     document.querySelectorAll('.order-item').forEach(row => {
         const itemId  = parseInt(row.querySelector('.item-select').value);
         const qty     = parseInt(row.querySelector('.item-qty').value);
-        const menuItem = menu.find(m => m.id === itemId);
+        const menuItem = getMenu().find(m => m.id === itemId);
 
         total += menuItem.price * qty;
 
@@ -98,6 +140,7 @@ function placeOrder() {
             </select>
             <input type="number" class="item-qty" value="1" min="1">
         </div>`;
+    populateSelects();
 }
 
 function updateStatus(orderId, newStatus) {
