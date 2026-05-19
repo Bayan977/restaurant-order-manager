@@ -38,8 +38,6 @@ restaurant-order-manager/
 | Name | Role |
 |------|------|
 | Malak Mohammad | Team Leader |
-| Hanin Haile | Member |
-| Fatima Almalki | Member |
 | Bayan Alderaan | Member |
 
 ## Jira Project
