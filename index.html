@@ -12,6 +12,7 @@
         <a href="#" onclick="showPage('menu')">Menu</a>
         <a href="#" onclick="showPage('order')">Place Order</a>
         <a href="#" onclick="showPage('orders')">All Orders</a>
+        <a href="#" onclick="showPage('manage')">Manage Menu</a>
     </nav>
 
     <!-- Menu Page -->
@@ -44,6 +45,17 @@
             <button class="btn-primary" onclick="searchOrders()">Search</button>
         </div>
         <div id="orders-list"></div>
+    </div>
+
+    <!-- Manage Menu Page -->
+    <div id="manage-page" class="page hidden">
+        <h1>Manage Menu</h1>
+        <label>Item Name</label>
+        <input type="text" id="new-item-name" placeholder="e.g. Falafel">
+        <label>Price ($)</label>
+        <input type="number" id="new-item-price" placeholder="e.g. 9" min="1">
+        <button class="btn-primary" onclick="addMenuItem()">Add Item</button>
+        <div id="manage-list"></div>
     </div>
 
     <script src="app.js"></script>
