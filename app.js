@@ -1,7 +1,6 @@
 // Restaurant Order Manager
 
-// FLAW #4 (PS4-4): Menu is hardcoded - no UI to add or delete items
-const menu = [
+const defaultMenu = [
     { id: 1, name: "Burger",  price: 12 },
     { id: 2, name: "Pizza",   price: 15 },
     { id: 3, name: "Pasta",   price: 10 },
@@ -10,18 +9,61 @@ const menu = [
     { id: 6, name: "Soup",    price: 6  }
 ];
 
+function getMenu() {
+    const stored = localStorage.getItem('menu');
+    return stored ? JSON.parse(stored) : defaultMenu;
+}
+
+function saveMenu(menu) {
+    localStorage.setItem('menu', JSON.stringify(menu));
+}
+
+function addMenuItem() {
+    const name  = document.getElementById('new-item-name').value.trim();
+    const price = parseFloat(document.getElementById('new-item-price').value);
+    if (!name || isNaN(price) || price <= 0) { alert('Enter a valid name and price.'); return; }
+    const menu = getMenu();
+    menu.push({ id: Date.now(), name, price });
+    saveMenu(menu);
+    document.getElementById('new-item-name').value  = '';
+    document.getElementById('new-item-price').value = '';
+    renderManage();
+}
+
+function deleteMenuItem(id) {
+    saveMenu(getMenu().filter(item => item.id !== id));
+    renderManage();
+}
+
+function renderManage() {
+    const list = document.getElementById('manage-list');
+    list.innerHTML = '';
+    getMenu().forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'menu-item';
+        div.innerHTML = `<span><strong>${item.name}</strong> — $${item.price}</span>`;
+        const btn = document.createElement('button');
+        btn.className = 'btn-secondary';
+        btn.textContent = 'Delete';
+        btn.onclick = () => deleteMenuItem(item.id);
+        div.appendChild(btn);
+        list.appendChild(div);
+    });
+}
+
 function showPage(page) {
     document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
     document.getElementById(page + '-page').classList.remove('hidden');
     if (page === 'menu')   renderMenu();
     if (page === 'order')  populateSelects();
     if (page === 'orders') renderOrders(getOrders());
+    if (page === 'manage') renderManage();
 }
 
 function renderMenu() {
     const list = document.getElementById('menu-list');
     list.innerHTML = '';
-    menu.forEach(item => {
+    getMenu().forEach(item => {
         list.innerHTML += `
             <div class="menu-item">
                 <strong>${item.name}</strong>
@@ -32,7 +74,7 @@ function renderMenu() {
 
 function populateSelects() {
     document.querySelectorAll('.item-select').forEach(select => {
-        select.innerHTML = menu.map(item =>
+        select.innerHTML = getMenu().map(item =>
             `<option value="${item.id}">${item.name} - $${item.price}</option>`
         ).join('');
     });
@@ -44,7 +86,7 @@ function addItem() {
     div.className = 'order-item';
     div.innerHTML = `
         <select class="item-select">
-            ${menu.map(item =>
+            ${getMenu().map(item =>
                 `<option value="${item.id}">${item.name} - $${item.price}</option>`
             ).join('')}
         </select>
@@ -53,51 +95,79 @@ function addItem() {
     container.appendChild(div);
 }
 
-// FLAW #7 (PS4-7): All logic crammed into one function - validation, calculation, saving, and UI reset
-function placeOrder() {
-    const customerName = document.getElementById('customer-name').value;
-    if (!customerName) { alert('Please enter your name.'); return; }
+function validateOrder(customerName) {
+    if (!customerName) { alert('Please enter your name.'); return false; }
+    return true;
+}
 
+function collectItems() {
     const items = [];
-    let total = 0;
-
     document.querySelectorAll('.order-item').forEach(row => {
-        const itemId  = parseInt(row.querySelector('.item-select').value);
-        const qty     = parseInt(row.querySelector('.item-qty').value);
-        const menuItem = menu.find(m => m.id === itemId);
-
-        total += menuItem.price * qty;
-
+        const itemId   = parseInt(row.querySelector('.item-select').value);
+        const qty      = parseInt(row.querySelector('.item-qty').value);
+        const menuItem = getMenu().find(m => m.id === itemId);
         items.push({ name: menuItem.name, price: menuItem.price, qty });
     });
+    return items;
+}
 
-    // FLAW #3 (PS4-3): Order has no status field (should be Pending / Ready / Delivered)
-    const order = {
+function calculateTotal(items) {
+    return items.reduce((sum, i) => sum + i.price * i.qty, 0);
+}
+
+function buildOrder(customerName, items, total) {
+    return {
         id:       Date.now(),
         customer: customerName,
         items,
         total,
+        status:   'Pending',
         date:     new Date().toLocaleString()
     };
+}
 
+function saveOrder(order) {
     const orders = getOrders();
     orders.push(order);
     localStorage.setItem('orders', JSON.stringify(orders));
+}
 
-    document.getElementById('order-total').textContent = `Order placed! Total: $${total}`;
+function showConfirmation(customerName, items, total) {
+    document.getElementById('order-total').innerHTML = `
+        <div class="confirmation">
+            ✅ Order placed successfully!<br>
+            <strong>Customer:</strong> ${customerName}<br>
+            <strong>Items:</strong> ${items.map(i => `${i.name} x${i.qty}`).join(', ')}<br>
+            <strong>Total: $${total.toFixed(2)}</strong>
+        </div>`;
+}
 
-    // FLAW #6 (PS4-6): No confirmation message shown to user after order is placed
-
+function resetForm() {
     document.getElementById('customer-name').value = '';
     document.getElementById('order-items').innerHTML = `
         <div class="order-item">
-            <select class="item-select">
-                ${menu.map(item =>
-                    `<option value="${item.id}">${item.name} - $${item.price}</option>`
-                ).join('')}
-            </select>
+            <select class="item-select"></select>
             <input type="number" class="item-qty" value="1" min="1">
         </div>`;
+    populateSelects();
+}
+
+function placeOrder() {
+    const customerName = document.getElementById('customer-name').value;
+    if (!validateOrder(customerName)) return;
+    const items = collectItems();
+    const total = calculateTotal(items);
+    const order = buildOrder(customerName, items, total);
+    saveOrder(order);
+    showConfirmation(customerName, items, total);
+    resetForm();
+}
+
+function updateStatus(orderId, newStatus) {
+    const orders = getOrders().map(o =>
+        o.id === orderId ? { ...o, status: newStatus } : o
+    );
+    localStorage.setItem('orders', JSON.stringify(orders));
 }
 
 function getOrders() {
@@ -114,14 +184,38 @@ function renderOrders(orders) {
     }
 
     orders.forEach(order => {
-        // FLAW #8 (PS4-8): Unsanitized user input inserted directly via innerHTML - XSS vulnerability
-        list.innerHTML += `
-            <div class="order-card">
-                <h3>${order.customer}</h3>
-                <p>Date: ${order.date}</p>
-                <p>Items: ${order.items.map(i => `${i.name} x${i.qty}`).join(', ')}</p>
-                <p><strong>Total: $${order.total}</strong></p>
-            </div>`;
+        const card = document.createElement('div');
+        card.className = 'order-card';
+
+        const name = document.createElement('h3');
+        name.textContent = order.customer;
+
+        const date = document.createElement('p');
+        date.textContent = `Date: ${order.date}`;
+
+        const itemsP = document.createElement('p');
+        itemsP.textContent = `Items: ${order.items.map(i => `${i.name} x${i.qty}`).join(', ')}`;
+
+        const totalP = document.createElement('p');
+        const strong = document.createElement('strong');
+        strong.textContent = `Total: $${order.total}`;
+        totalP.appendChild(strong);
+
+        const statusP = document.createElement('p');
+        statusP.textContent = 'Status: ';
+        const select = document.createElement('select');
+        ['Pending', 'Ready', 'Delivered'].forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s;
+            opt.textContent = s;
+            if (order.status === s) opt.selected = true;
+            select.appendChild(opt);
+        });
+        select.onchange = () => updateStatus(order.id, select.value);
+        statusP.appendChild(select);
+
+        card.append(name, date, itemsP, totalP, statusP);
+        list.appendChild(card);
     });
 }
 
@@ -129,11 +223,11 @@ function searchOrders() {
     const query  = document.getElementById('search-input').value;
     const orders = getOrders();
 
-    // FLAW #2 (PS4-2): includes() called with no argument - always returns false,
-    // so filtered is always empty and the fallback shows all orders regardless of query
-    const filtered = orders.filter(order => order.customer.includes());
+    const filtered = orders.filter(order =>
+        order.customer.toLowerCase().includes(query.toLowerCase())
+    );
 
-    renderOrders(filtered.length > 0 ? filtered : orders);
+    renderOrders(filtered);
 }
 
 // Boot
